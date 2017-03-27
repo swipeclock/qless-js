@@ -18,7 +18,7 @@ describe('qless job integration test', () => {
   });
 
   it('leaves no running/scheduled/stalled/failed jobs when the job succeeds', done => {
-    const worker = new qless.SerialWorker('my_test_queue', qlessClient);
+    const worker = new qless.SerialWorker(['my_test_queue', 'my_second_test_queue'], qlessClient);
 
     require('../jobs/MockJob').perform = (job, cb) => {
       job.data.should.eql({ key1: 'val1' });

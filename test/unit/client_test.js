@@ -2,6 +2,7 @@
 
 const os = require('os');
 const process = require('process');
+const sinon = require('sinon');
 
 describe('qless.client', () => {
   describe('workerName', () => {
@@ -33,5 +34,14 @@ describe('qless.client', () => {
       queues.length.should.eq(1)
       queues[0].name.should.eq('foo')
     });
+  })
+
+  describe('redis', () => {
+    it('should call redis.quit on quit()', function* () {
+      let quitSpy = sinon.stub(qlessClient.redis, 'quit').yields(null, null);
+      yield qlessClient.quitAsync();
+      expect(quitSpy).calledOnce;
+      quitSpy.restore()
+    })
   })
 });

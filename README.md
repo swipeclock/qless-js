@@ -35,7 +35,7 @@ qless.klassFinder.setModuleDir(__dirname + '/jobs');
 const client = new qless.Client();
 const worker = new qless.SerialWorker('myqueue', client);
 
-worker.run(err => {
+worker.run((err => {
   console.log("ERROR IN WORKER: ", err);
   // normally won't happen unless a serious (e.g. redis) error
   // NOT triggered when a job [safely] fails
@@ -46,6 +46,24 @@ To enable debugging, run with:
 
 ```bash
 DEBUG='qless:*' node worker.js
+```
+
+#### Example "forking" worker
+```javascript
+// myproject/worker.js
+'use strict';
+
+const qless = require('qless');
+const qlessClient = new qless.Client();
+
+// Set job directory in the options arg
+const worker = new qless.ForkingWorker(["default", "default2"] , qlessClient, { moduleDir: __dirname + '/jobs' });
+
+worker.run((err => {
+  console.log("ERROR IN SPAWNED WORKER: ", err);
+  // normally won't happen unless a serious (e.g. redis) error
+  // NOT triggered when a job [safely] fails
+});
 ```
 
 #### Example job

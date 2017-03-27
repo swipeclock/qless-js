@@ -10,4 +10,5 @@ module.exports = {
   errors: require('./lib/errors'),
   Client: require('./lib/client').Client,
   SerialWorker: require('./lib/workers/serial').SerialWorker,
+  ForkingWorker: require('./lib/workers/forking').ForkingWorker
 };

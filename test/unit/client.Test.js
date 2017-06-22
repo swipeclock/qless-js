@@ -1,5 +1,6 @@
 'use strict';
 
+require('../helper')
 const os = require('os');
 const process = require('process');
 const sinon = require('sinon');

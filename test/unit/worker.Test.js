@@ -1,5 +1,6 @@
 'use strict';
 
+require('../helper')
 const os = require('os');
 const cp = require('child_process');
 const process = require('process');

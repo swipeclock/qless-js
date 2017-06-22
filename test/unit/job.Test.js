@@ -1,9 +1,15 @@
 'use strict';
 
+require('../helper.js')
 const sinon = require('sinon')
+const Path = require('path')
+const Job = require('../../lib/job').Job
+const Klass = require('../jobs/Klass.js')
+const expect = require('expect.js');
 
 describe('qless.Job', () => {
   const fooQueue = qlessClient.queue('foo');
+
 
   it('has all the basic attributes we would expect', function *() {
     yield fooQueue.putAsync('Foo', {'whiz': 'bang'}, {jid:'jid', tags: ['foo'], retries: 3});
@@ -27,6 +33,66 @@ describe('qless.Job', () => {
     });
   });
 
+  it('can import a file', () => {
+    const path = Path.resolve(__dirname, '../jobs/Klass.js');
+    let job = Job.importKlass(path)
+    expect(Job.importKlass(path)).to.eql(Klass);
+  });
+
+  it('can import a class', () => {
+    const path = Path.resolve(__dirname, '../jobs/Klass.js/myStatic');
+    expect(Job.importKlass(path)).to.eql(Klass.myStatic);
+  });
+
+  it('null when importing a nonexistent file', () => {
+    let res = Job.importKlass('does-not-exist')
+    expect(res).to.be(null);
+  });
+
+  it('null when importing a nonexistent class', () => {
+    const path = Path.resolve(__dirname, '../jobs/Klass.js/DoesNotExist');
+    let res = Job.importKlass(path)
+    expect(res).to.be(null);
+  });
+
+  it('null when importing nonexistent attributes', () => {
+    const path = Path.resolve(__dirname, '../jobs/Klass.js/some/atts/do/not/exist');
+    let res = Job.importKlass(path)
+    expect(res).to.be(null);
+  });
+
+  // it('can access the class for a job', () => {
+  //   const klass = {};
+  //   const disposer = helper.stubDisposer(Job, 'import', sinon.stub());
+  //   return Promise.using(disposer, (stub) => {
+  //     stub.returns(klass);
+  //     return queue.put({ klass: 'my/awesome/klass' })
+  //       .then(() => queue.pop())
+  //       .then(job => expect(job.getKlass()).to.be(klass));
+  //   });
+  // });
+
+  it('null when using an absolute path to a klass', function *() {
+    yield fooQueue.putAsync('/my/awesome/klass', {}, {})
+    let job = yield fooQueue.popAsync()
+    let res = job.getKlass()
+    expect(res).to.be(null)
+  });
+
+  it('null when using an . path to a klass', function *() {
+    yield fooQueue.putAsync('my/../../malicioius/path', {}, {})
+    let job = yield fooQueue.popAsync()
+    let res = job.getKlass()
+    expect(res).to.be(null)
+  });
+
+  it('allows the import of a . path to a klass if configured to', function *() {
+    const path = Path.resolve(__dirname, '../jobs/Klass.js');
+    yield fooQueue.putAsync(path, {}, {})
+    let job = yield fooQueue.popAsync()
+    expect(() => expect(job.getKlass({ allowPaths: true })).to.eql(Klass));
+  });
+
   it("Able to complete a job", function *() {
     yield fooQueue.putAsync('Foo', {}, {jid: 'jid'});
     const job1 = yield fooQueue.popAsync();
@@ -45,7 +111,7 @@ describe('qless.Job', () => {
     yield fooQueue.putAsync('JobDefinitelyDoesntExist', {}, {jid: 'jid'})
     const job = yield fooQueue.popAsync();
     yield co.wrap(cb => {
-      job.perform((err, val) => {
+      job.perform({}, (err, val) => {
         err.should.be.an.instanceof(qless.errors.CouldntLoadClass);
         cb();
       });
@@ -53,10 +119,11 @@ describe('qless.Job', () => {
   });
 
   it("Raises an error if the klass (module) doesn't have a perform method", function *() {
-    yield fooQueue.putAsync('JobWithoutAPerform', {}, {jid: 'jid'});
+    const path = Path.resolve(__dirname, '../jobs/JobWithoutAPerform.js');
+    yield fooQueue.putAsync(path, {}, {jid: 'jid'});
     const job = yield fooQueue.popAsync();
     yield co.wrap(cb => {
-      job.perform((err, val) => {
+      job.perform({allowPaths: true}, (err, val) => {
         err.should.be.an.instanceof(qless.errors.ClassLackingPerformMethod);
         cb();
       });
@@ -64,9 +131,10 @@ describe('qless.Job', () => {
   });
 
   it("Exposes the class for a job", function *() {
-    yield fooQueue.putAsync('JobWithoutAPerform', {}, {jid: 'jid'})
+    const path = Path.resolve(__dirname, '../jobs/JobWithoutAPerform.js');
+    yield fooQueue.putAsync(path, {}, {jid: 'jid'});
     const job = yield qlessClient.jobs.getAsync('jid');
-    job.getKlass().should.eq(require('../jobs/JobWithoutAPerform'));
+    job.getKlass({allowPaths: true}).should.eq(require('../jobs/JobWithoutAPerform'));
   });
 
   it("We can set a job's priority", function *() {
@@ -191,9 +259,9 @@ describe('qless.Job', () => {
   it("Exposes a way to tag and untag a job", function *() {
     yield fooQueue.putAsync('Foo', {}, {jid: 'jid'})
     yield(yield qlessClient.jobs.getAsync('jid')).tagAsync('foo')
-    expect((yield qlessClient.jobs.getAsync('jid')).tags).to.deep.eql(['foo'])
+    expect((yield qlessClient.jobs.getAsync('jid')).tags).to.eql(['foo'])
     yield(yield qlessClient.jobs.getAsync('jid')).untagAsync('foo')
-    expect((yield qlessClient.jobs.getAsync('jid')).tags).to.deep.eql([])
+    expect((yield qlessClient.jobs.getAsync('jid')).tags).to.eql([])
   });
 
   it('handles errors on tag', function *() {
@@ -422,8 +490,8 @@ describe('qless.RecurJob', () => {
     yield fooQueue.recurAsync('Foo', {'whiz': 'bang'}, 60, {jid: 'jid'});
     var job = yield qlessClient.jobs.getAsync('jid');
     yield job.setDataAsync({'foo': 'bar'});
-    expect((yield qlessClient.jobs.getAsync('jid')).data).to.deep.eql({'foo': 'bar'});
-    expect(job.data).to.deep.eql({'foo': 'bar'})
+    expect((yield qlessClient.jobs.getAsync('jid')).data).to.eql({'foo': 'bar'});
+    expect(job.data).to.eql({'foo': 'bar'})
   });
 
   it('handles errors on set data', function *() {
@@ -516,9 +584,9 @@ describe('qless.RecurJob', () => {
   it("Exposes a way to tag and untag a recurring job", function *() {
     yield fooQueue.recurAsync('Foo', {'whiz': 'bang'}, 60, {jid: 'jid'});
     yield(yield qlessClient.jobs.getAsync('jid')).tagAsync('foo')
-    expect((yield qlessClient.jobs.getAsync('jid')).tags).to.deep.eql(['foo'])
+    expect((yield qlessClient.jobs.getAsync('jid')).tags).to.eql(['foo'])
     yield(yield qlessClient.jobs.getAsync('jid')).untagAsync('foo')
-    expect((yield qlessClient.jobs.getAsync('jid')).tags).to.deep.eql([])
+    expect((yield qlessClient.jobs.getAsync('jid')).tags).to.eql([])
   });
 
   it('handles errors on tag', function *() {
@@ -560,7 +628,7 @@ describe('qless.RecurJob', () => {
     job.data = {'foo': 'bar'}
     yield job.updateAsync()
     var job = yield qlessClient.jobs.getAsync('jid');
-    expect(job.data).to.deep.eql({'foo': 'bar'})
+    expect(job.data).to.eql({'foo': 'bar'})
   });
 
   it('handles errors on update', function *() {

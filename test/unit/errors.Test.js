@@ -1,5 +1,7 @@
 'use strict';
 
+require('../helper')
+
 describe('qless.errors', () => {
   const lseErr = new qless.errors.LuaScriptError('foobar');
 
@@ -14,6 +16,6 @@ describe('qless.errors', () => {
 
   it('has a message and stack', () => {
     expect(lseErr.message).to.eql('foobar');
-    expect(lseErr.stack).to.match(/errors_test.js/);
+    expect(lseErr.stack).to.match(/errors.Test.js/);
   });
 });

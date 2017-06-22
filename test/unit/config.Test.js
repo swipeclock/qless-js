@@ -1,5 +1,6 @@
 'use strict';
 
+require('../helper')
 const sinon = require('sinon')
 
 describe('qless.Config', () => {

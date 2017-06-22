@@ -1,5 +1,6 @@
 'use strict';
 
+require('../helper')
 const os = require('os');
 const cp = require('child_process');
 const process = require('process');
@@ -67,7 +68,7 @@ describe('qless.worker.forking', () => {
   describe('spawn()', () => {
     it('manages a child process', () => {
       var worker = new qless.ForkingWorker('my_test_queue', qlessClient);
-      let exitStub = sinon.stub(process, 'exit');
+      //let exitStub = sinon.stub(process, 'exit');
       let child = worker.spawn()
 
       // Creates worker
@@ -83,6 +84,7 @@ describe('qless.worker.forking', () => {
       // Allows workers to exit on shutdown
       worker.shutdown = true;
       child.kill()
+
 
     });
   });

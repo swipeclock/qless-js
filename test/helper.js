@@ -8,15 +8,16 @@ const bluebird = require('bluebird');
 const co = require('co');
 
 // Testing Stuff
-require('mocha-co');
+var mocha = require('mocha')
+var coMocha = require('co-mocha')
 const chai = require('chai');
-const expect = chai.expect;
+const expect = require('expect.js');
 chai.should();
 
 // Redis and Qless
 const qless = require('../qless');
 const redisInfo = { db: 11 };
-const qlessClient = new qless.Client();
+const qlessClient = new qless.Client({host: '192.168.60.10', port: 6378, db: 0, allowPaths: true});
 bluebird.promisifyAll(require('../lib/jobs'));
 bluebird.promisifyAll(require('../lib/queue'));
 bluebird.promisifyAll(require('../lib/job'));
@@ -28,7 +29,6 @@ bluebird.promisifyAll(qlessClient.redis);
 beforeEach(function *() {
   yield qlessClient.redis.flushdbAsync();
   yield qlessClient.redis.scriptAsync('flush');
-  qless.klassFinder.setModuleDir(__dirname + '/jobs');
 });
 
 afterEach(function () {

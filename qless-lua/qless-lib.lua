@@ -1,4 +1,4 @@
--- Current SHA: 74f7ffb0ff654744384ebf62230732a1f447d339
+-- Current SHA: 00be99dd0b497e2a4bf357b9b9b33eb76950435c
 -- This is a generated file
 -------------------------------------------------------------------------------
 -- Forward declarations to make everything happy
@@ -258,7 +258,7 @@ function Qless.tag(now, command, ...)
       -- Otherwise, add the job to the sorted set with that tags
       for i=2,#arg do
         local tag = arg[i]
-        if _tags[tag] == nil then
+        if _tags[tag] == nil or _tags[tag] == false then
           _tags[tag] = true
           table.insert(tags, tag)
         end
@@ -333,9 +333,9 @@ function Qless.cancel(...)
   -- make sure that this operation will be ok
   for i, jid in ipairs(arg) do
     for j, dep in ipairs(dependents[jid]) do
-      if dependents[dep] == nil then
+      if dependents[dep] == nil or dependents[dep] == false then
         error('Cancel(): ' .. jid .. ' is a dependency of ' .. dep ..
-           ' but is not mentioned to be canceled')
+                ' but is not mentioned to be canceled')
       end
     end
   end
@@ -441,7 +441,7 @@ Qless.config.defaults = {
 Qless.config.get = function(key, default)
   if key then
     return redis.call('hget', 'ql:config', key) or
-      Qless.config.defaults[key] or default
+            Qless.config.defaults[key] or default
   else
     -- Inspired by redis-lua https://github.com/nrk/redis-lua/blob/version-2.0/src/redis.lua
     local reply = redis.call('hgetall', 'ql:config')
@@ -488,9 +488,9 @@ end
 -- appropriate properties
 function QlessJob:data(...)
   local job = redis.call(
-      'hmget', QlessJob.ns .. self.jid, 'jid', 'klass', 'state', 'queue',
-      'worker', 'priority', 'expires', 'retries', 'remaining', 'data',
-      'tags', 'failure', 'spawned_from_jid')
+    'hmget', QlessJob.ns .. self.jid, 'jid', 'klass', 'state', 'queue',
+    'worker', 'priority', 'expires', 'retries', 'remaining', 'data',
+    'tags', 'failure', 'spawned_from_jid')
 
   -- Return nil if we haven't found it
   if not job[1] then
@@ -584,13 +584,13 @@ function QlessJob:complete(now, worker, queue, raw_data, ...)
     error('Complete(): Job ' .. self.jid .. ' does not exist')
   elseif (state ~= 'running') then
     error('Complete(): Job ' .. self.jid .. ' is not currently running: ' ..
-      state)
+            state)
   elseif lastworker ~= worker then
     error('Complete(): Job ' .. self.jid ..
-      ' has been handed out to another worker: ' .. tostring(lastworker))
+            ' has been handed out to another worker: ' .. tostring(lastworker))
   elseif queue ~= current_queue then
     error('Complete(): Job ' .. self.jid .. ' running in another queue: ' ..
-      tostring(current_queue))
+            tostring(current_queue))
   end
 
   -- Now we can assume that the worker does own the job. We need to
@@ -827,7 +827,7 @@ function QlessJob:fail(now, worker, group, message, data)
     error('Fail(): Job ' .. self.jid .. 'not currently running: ' .. state)
   elseif worker ~= oldworker then
     error('Fail(): Job ' .. self.jid .. ' running with another worker: ' ..
-      oldworker)
+            oldworker)
   end
 
   -- Send out a log message
@@ -923,10 +923,10 @@ function QlessJob:retry(now, queue, worker, delay, group, message)
     error('Retry(): Job ' .. self.jid .. ' does not exist')
   elseif state ~= 'running' then
     error('Retry(): Job ' .. self.jid .. ' is not currently running: ' ..
-      state)
+            state)
   elseif oldworker ~= worker then
     error('Retry(): Job ' .. self.jid ..
-      ' has been given to another worker: ' .. oldworker)
+            ' has been given to another worker: ' .. oldworker)
   end
 
   -- For each of these, decrement their retries. If any of them
@@ -963,13 +963,13 @@ function QlessJob:retry(now, queue, worker, delay, group, message)
       )
     else
       redis.call('hset', QlessJob.ns .. self.jid,
-      'failure', cjson.encode({
-        ['group']   = group,
-        ['message'] =
+        'failure', cjson.encode({
+          ['group']   = group,
+          ['message'] =
           'Job exhausted retries in queue "' .. oldqueue .. '"',
-        ['when']    = now,
-        ['worker']  = unpack(self:data('worker'))
-      }))
+          ['when']    = now,
+          ['worker']  = unpack(self:data('worker'))
+        }))
     end
 
     -- Add this type of failure to the list of failures
@@ -1023,7 +1023,7 @@ function QlessJob:depends(now, command, ...)
   local state = redis.call('hget', QlessJob.ns .. self.jid, 'state')
   if state ~= 'depends' then
     error('Depends(): Job ' .. self.jid ..
-      ' not in the depends state: ' .. tostring(state))
+            ' not in the depends state: ' .. tostring(state))
   end
 
   if command == 'on' then
@@ -1095,7 +1095,7 @@ function QlessJob:heartbeat(now, worker, data)
   local queue = redis.call('hget', QlessJob.ns .. self.jid, 'queue') or ''
   local expires = now + tonumber(
     Qless.config.get(queue .. '-heartbeat') or
-    Qless.config.get('heartbeat', 60))
+            Qless.config.get('heartbeat', 60))
 
   if data then
     data = cjson.decode(data)
@@ -1114,7 +1114,7 @@ function QlessJob:heartbeat(now, worker, data)
   elseif job_worker ~= worker or #job_worker == 0 then
     error(
       'Heartbeat(): Job ' .. self.jid ..
-      ' given out to another worker: ' .. job_worker)
+              ' given out to another worker: ' .. job_worker)
   else
     -- Otherwise, optionally update the user data, and the heartbeat
     if data then
@@ -1135,7 +1135,7 @@ function QlessJob:heartbeat(now, worker, data)
     local queue = Qless.queue(
       redis.call('hget', QlessJob.ns .. self.jid, 'queue'))
     queue.locks.add(expires, self.jid)
-    
+
     local encoded = cjson.encode({
       jid    = self.jid,
       event  = 'heartbeat',
@@ -1144,7 +1144,7 @@ function QlessJob:heartbeat(now, worker, data)
     })
     Qless.publish('w:' .. worker, encoded)
     Qless.publish('log', encoded)
-    
+
     return expires
   end
 end
@@ -1156,12 +1156,12 @@ end
 function QlessJob:priority(priority)
   priority = assert(tonumber(priority),
     'Priority(): Arg "priority" missing or not a number: ' ..
-    tostring(priority))
+            tostring(priority))
 
   -- Get the queue the job is currently in, if any
   local queue = redis.call('hget', QlessJob.ns .. self.jid, 'queue')
 
-  if queue == nil then
+  if queue == nil or queue == false then
     -- If the job doesn't exist, throw an error
     error('Priority(): Job ' .. self.jid .. ' does not exist')
   elseif queue == '' then
@@ -1194,7 +1194,7 @@ end
 function QlessJob:timeout(now)
   local queue_name, state, worker = unpack(redis.call('hmget',
     QlessJob.ns .. self.jid, 'queue', 'state', 'worker'))
-  if queue_name == nil then
+  if queue_name == nil or queue_name == false then
     error('Timeout(): Job ' .. self.jid .. ' does not exist')
   elseif state ~= 'running' then
     error('Timeout(): Job ' .. self.jid .. ' not running')
@@ -1278,7 +1278,7 @@ function QlessJob:history(now, what, item)
       -- We'll always keep the first item around
       local obj = redis.call('lpop', QlessJob.ns .. self.jid .. '-history')
       redis.call('ltrim', QlessJob.ns .. self.jid .. '-history', -count + 2, -1)
-      if obj ~= nil then
+      if obj ~= nil and obj ~= false then
         redis.call('lpush', QlessJob.ns .. self.jid .. '-history', obj)
       end
     end
@@ -1568,7 +1568,7 @@ function QlessQueue:pop(now, worker, count)
   -- We should find the heartbeat interval for this queue heartbeat
   local expires = now + tonumber(
     Qless.config.get(self.name .. '-heartbeat') or
-    Qless.config.get('heartbeat', 60))
+            Qless.config.get('heartbeat', 60))
 
   -- If this queue is paused, then return no jobs
   if self:paused() then
@@ -1640,13 +1640,13 @@ function QlessQueue:pop(now, worker, count)
       Qless.publish('popped', jid)
     end
 
-    -- If throttle is set, add a time to live for the job id
     local throttle = tonumber(
       Qless.config.get(self.name .. '-throttle', 0))
     if throttle > 0 then
       redis.call('set', QlessQueue.ns .. self.name .. ':ttl:' .. jid, throttle)
       redis.call('expire', QlessQueue.ns .. self.name .. ':ttl:' .. jid, throttle)
     end
+
   end
 
   -- If we are returning any jobs, then we should remove them from the work
@@ -1724,14 +1724,12 @@ function QlessQueue:put(now, worker, jid, klass, raw_data, delay, ...)
   -- Let's see what the old priority and tags were
   local job = Qless.job(jid)
   local priority, tags, oldqueue, state, failure, retries, oldworker =
-    unpack(redis.call('hmget', QlessJob.ns .. jid, 'priority', 'tags',
-      'queue', 'state', 'failure', 'retries', 'worker'))
+  unpack(redis.call('hmget', QlessJob.ns .. jid, 'priority', 'tags',
+    'queue', 'state', 'failure', 'retries', 'worker'))
 
-  -- Get replace flag
   local replace = assert(tonumber(options['replace'] or 1) ,
-   'Put(): Arg "replace" not a number: ' .. tostring(options['replace']))
+    'Put(): Arg "replace" not a number: ' .. tostring(options['replace']))
 
-  -- If job is running, don't replace or add the job
   if replace == 0 and state == 'running' then
     return nil
   end
@@ -1763,7 +1761,7 @@ function QlessQueue:put(now, worker, jid, klass, raw_data, delay, ...)
     local original = redis.call(
       'smembers', QlessJob.ns .. jid .. '-dependencies')
     for _, dep in pairs(original) do
-      if new[dep] == nil then
+      if new[dep] == nil or new[dep] == false then
         -- Remove k as a dependency
         redis.call('srem', QlessJob.ns .. dep .. '-dependents'  , jid)
         redis.call('srem', QlessJob.ns .. jid .. '-dependencies', dep)
@@ -1836,7 +1834,6 @@ function QlessQueue:put(now, worker, jid, klass, raw_data, delay, ...)
     redis.call('hincrby', 'ql:s:stats:' .. bin .. ':' .. self.name, 'failed'  , -1)
   end
 
-  -- If there is a throttle, get the time to live
   local throttle = tonumber(redis.call('ttl', QlessQueue.ns .. self.name .. ':ttl:' .. jid))
 
   -- First, let's save its data
@@ -1864,7 +1861,7 @@ function QlessQueue:put(now, worker, jid, klass, raw_data, delay, ...)
     end
   end
 
-  -- Now, if a delay or throttle was provided, and if it's in the future,
+  -- Now, if a delay was provided, and if it's in the future,
   -- then we'll have to schedule it. Otherwise, we're just
   -- going to add it to the work queue.
   if delay > 0 or throttle > 0 then
@@ -1980,11 +1977,10 @@ function QlessQueue:recur(now, jid, klass, raw_data, spec, ...)
 
     local count, old_queue = unpack(redis.call('hmget', 'ql:r:' .. jid, 'count', 'queue'))
     count = count or 0
-    
-    -- optionally don't overwrite recur
+
     if count ~= 0 and options.replace == 0 then
       return nil
-    end     
+    end
 
     -- If it has previously been in another queue, then we should remove
     -- some information about it
@@ -2058,7 +2054,7 @@ function QlessQueue:check_recurring(now, count)
       if num > backlog then
         -- Update the score
         score = score + (
-          math.ceil(num - backlog) * interval
+        math.ceil(num - backlog) * interval
         )
       end
     end
@@ -2216,13 +2212,13 @@ function QlessQueue:invalidate_locks(now, count)
           'expires', '')
         -- If the failure has not already been set, then set it
         redis.call('hset', QlessJob.ns .. jid,
-        'failure', cjson.encode({
-          ['group']   = group,
-          ['message'] =
+          'failure', cjson.encode({
+            ['group']   = group,
+            ['message'] =
             'Job exhausted retries in queue "' .. self.name .. '"',
-          ['when']    = now,
-          ['worker']  = unpack(job:data('worker'))
-        }))
+            ['when']    = now,
+            ['worker']  = unpack(job:data('worker'))
+          }))
 
         -- Add this type of failure to the list of failures
         redis.call('sadd', 'ql:failures', group)
@@ -2238,7 +2234,7 @@ function QlessQueue:invalidate_locks(now, count)
           group   = group,
           worker  = worker,
           message =
-            'Job exhausted retries in queue "' .. self.name .. '"'
+          'Job exhausted retries in queue "' .. self.name .. '"'
         }))
 
         -- Increment the count of the failed jobs
@@ -2392,7 +2388,7 @@ function QlessRecurringJob:tag(...)
     for i,v in ipairs(tags) do _tags[v] = true end
 
     -- Otherwise, add the job to the sorted set with that tags
-    for i=1,#arg do if _tags[arg[i]] == nil then table.insert(tags, arg[i]) end end
+    for i=1,#arg do if _tags[arg[i]] == nil or _tags[arg[i]] == false then table.insert(tags, arg[i]) end end
 
     tags = cjson.encode(tags)
     redis.call('hset', 'ql:r:' .. self.jid, 'tags', tags)

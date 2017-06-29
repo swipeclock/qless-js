@@ -13,9 +13,19 @@ describe('qless.worker.worker', () => {
       var worker = new Worker('my_test_queue', qlessClient);
 
       expect(worker.shutdown).to.eql(false);
-      worker.stop()
+      worker.stop();
       expect(worker.shutdown).to.eql(true);
     });
+
+    it('get empty job from multiple empty queues', function (done) {
+      var worker = new Worker(['my_test_queue', 'my_other_test_queue'], qlessClient);
+      worker.reserve((err, job) => {
+        expect(err).to.eql(null);
+        expect(job).to.eql(null);
+        done()
+      })
+    })
+
   });
 
 

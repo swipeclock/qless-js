@@ -25,7 +25,7 @@ describe('qless.worker.worker', () => {
         done()
       })
     })
-    
+
   });
 
 

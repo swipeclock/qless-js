@@ -16,7 +16,7 @@ describe('qless.Job', () => {
     const job = yield qlessClient.jobs.getAsync('jid');
     const attrs = _.pick(job, ['data', 'jid', 'priority', 'klassName', 'queueName', 'tags',
         'expiresAt', 'originalRetries', 'retriesLeft', 'workerName',
-        'dependents', 'dependencies']);
+        'dependents', 'dependencies', 'resources']);
     attrs.should.eql({
       'data': {'whiz': 'bang'},
       'dependencies': [],
@@ -30,6 +30,7 @@ describe('qless.Job', () => {
       'retriesLeft': 3,
       'tags': ['foo'],
       'workerName': '',
+      'resources': {}
     });
   });
 

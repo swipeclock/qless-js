@@ -6,7 +6,7 @@
 
 Requires Node >= 6
 
-Note: this is an incomplete port. As of October 2016 it contains only a few core Qless features (e.g., enqueueing, processing, succeeding, and failing jobs). However these are tested and should be usable. See [TODO](TODO.md) for missing features. Development is stalled as of October 2016, but should hopefully resume in the future. Perhaps this will be useful to someone, and everyone should feel free to contributing and submit PRs.
+History:  This was originally forked as an incomplete port with partial support.  Development was stalled as of October 2016.  This fork attempted to complete the api and PR'd back upstream.  Upstream shortly after decided to rewrite this project based on Promises instead of a callback pattern and has deviated too much from the original design to realistically be able to merge back.  This qless-js client is used heavily in a production environment running ~500,000 jobs daily.  
 
 ### Example
 #### Example enqueuer

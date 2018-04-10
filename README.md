@@ -35,7 +35,7 @@ qless.klassFinder.setModuleDir(__dirname + '/jobs');
 const client = new qless.Client();
 const worker = new qless.SerialWorker('myqueue', client);
 
-worker.run((err => {
+worker.run((err, job) => {
   console.log("ERROR IN WORKER: ", err);
   // normally won't happen unless a serious (e.g. redis) error
   // NOT triggered when a job [safely] fails
@@ -59,7 +59,7 @@ const qlessClient = new qless.Client();
 // Set job directory in the options arg
 const worker = new qless.ForkingWorker(["default", "default2"] , qlessClient, { moduleDir: __dirname + '/jobs' });
 
-worker.run((err => {
+worker.run((err, job) => {
   console.log("ERROR IN SPAWNED WORKER: ", err);
   // normally won't happen unless a serious (e.g. redis) error
   // NOT triggered when a job [safely] fails
@@ -127,3 +127,22 @@ submodule. If the upstream qless-core scripts change, you can recompile
 the lua scripts with a `npm run build`. You may have to pull the latest
 version of the qless-core scripts first by doing a `git pull` in the
 `qless-core` directory.
+
+
+### qless-cli
+Git style command for basic cli interation with qless.
+```
+qless-cli <command>
+
+Commands:
+  qless-cli job <command>       Interact with a qless job
+  qless-cli queue <command>     Interact with a queue
+  qless-cli resource <command>  Interact with a queue
+
+Options:
+  --version  Show version number                                       [boolean]
+  --host     redis host                        [required] [default: "localhost"]
+  --port     redis port                               [required] [default: 6379]
+  --db       redis db index                              [required] [default: 0]
+  --help     Show help                                                 [boolean]
+```

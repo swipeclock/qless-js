@@ -6,7 +6,7 @@
 
 Requires Node >= 6
 
-Note: this is an incomplete port. As of October 2016 it contains only a few core Qless features (e.g., enqueueing, processing, succeeding, and failing jobs). However these are tested and should be usable. See [TODO](TODO.md) for missing features. Development is stalled as of October 2016, but should hopefully resume in the future. Perhaps this will be useful to someone, and everyone should feel free to contributing and submit PRs.
+History:  This was originally forked as an incomplete port with partial support.  Development was stalled as of October 2016.  This fork attempted to complete the api and PR'd back upstream.  Upstream shortly after decided to rewrite this project based on Promises instead of a callback pattern and has deviated too much from the original design to realistically be able to merge back.  This qless-js client is used heavily in a production environment running ~500,000 jobs daily.  
 
 ### Example
 #### Example enqueuer
@@ -35,7 +35,7 @@ qless.klassFinder.setModuleDir(__dirname + '/jobs');
 const client = new qless.Client();
 const worker = new qless.SerialWorker('myqueue', client);
 
-worker.run((err => {
+worker.run((err, job) => {
   console.log("ERROR IN WORKER: ", err);
   // normally won't happen unless a serious (e.g. redis) error
   // NOT triggered when a job [safely] fails
@@ -59,7 +59,7 @@ const qlessClient = new qless.Client();
 // Set job directory in the options arg
 const worker = new qless.ForkingWorker(["default", "default2"] , qlessClient, { moduleDir: __dirname + '/jobs' });
 
-worker.run((err => {
+worker.run((err, job) => {
   console.log("ERROR IN SPAWNED WORKER: ", err);
   // normally won't happen unless a serious (e.g. redis) error
   // NOT triggered when a job [safely] fails
@@ -127,3 +127,22 @@ submodule. If the upstream qless-core scripts change, you can recompile
 the lua scripts with a `npm run build`. You may have to pull the latest
 version of the qless-core scripts first by doing a `git pull` in the
 `qless-core` directory.
+
+
+### qless-cli
+Git style command for basic cli interation with qless.
+```
+qless-cli <command>
+
+Commands:
+  qless-cli job <command>       Interact with a qless job
+  qless-cli queue <command>     Interact with a queue
+  qless-cli resource <command>  Interact with a queue
+
+Options:
+  --version  Show version number                                       [boolean]
+  --host     redis host                        [required] [default: "localhost"]
+  --port     redis port                               [required] [default: 6379]
+  --db       redis db index                              [required] [default: 0]
+  --help     Show help                                                 [boolean]
+```

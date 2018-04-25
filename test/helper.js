@@ -23,6 +23,7 @@ bluebird.promisifyAll(require('../lib/queue'));
 bluebird.promisifyAll(require('../lib/job'));
 bluebird.promisifyAll(require('../lib/config'));
 bluebird.promisifyAll(require('../lib/client'));
+bluebird.promisifyAll(require('../lib/resource'));
 bluebird.promisifyAll(qlessClient.redis);
 
 

@@ -165,7 +165,7 @@ describe('qless.worker.forking', () => {
       var worker = new qless.ForkingWorker('my_test_queue', qlessClient);
 
       expect(worker.shutdown).to.eql(false);
-      worker.stop(true)
+      worker.stop()
       expect(worker.shutdown).to.eql(true);
     });
 
@@ -173,7 +173,7 @@ describe('qless.worker.forking', () => {
       var worker = new qless.ForkingWorker('my_test_queue', qlessClient);
       let spyOne = sinon.stub(process, 'kill')
       worker.sandboxes[0] = process;
-      worker.stop(true);
+      worker.stop();
       expect(spyOne.calledOnce).to.eql(true)
       spyOne.restore()
     });
@@ -186,7 +186,7 @@ describe('qless.worker.forking', () => {
       let exitStub = sinon.stub(process, 'exit');
       worker.run();
       expect(worker.spawn.calledTwice).to.eql(true);
-      worker.stop(true);
+      worker.stop();
       stopStub.restore();
       exitStub.restore();
     })
@@ -231,7 +231,7 @@ describe('qless.worker.forking', () => {
 
       worker._processPubSub('channel', {event: 'lock_lost', worker: 'test', expires: 1498851214.504});
       expect(killStub.calledOnce).to.eql(true);
-      expect(killStub.calledWith('test', true)).to.eql(true);
+      expect(killStub.calledWith('test', 'SIGKILL')).to.eql(true);
     });
 
     it('on cancel kills the worker forcefully', () => {
@@ -240,7 +240,7 @@ describe('qless.worker.forking', () => {
 
       worker._processPubSub('channel', {event: 'canceled', worker: 'test', expires: 1498851214.504});
       expect(killStub.calledOnce).to.eql(true);
-      expect(killStub.calledWith('test', true)).to.eql(true);
+      expect(killStub.calledWith('test', 'SIGKILL')).to.eql(true);
     });
 
     it('on unkown events it does not explode', () => {

@@ -208,6 +208,7 @@ describe('qless.worker.forking', () => {
       let expiresAt = (new Date().getTime() / 1000) + 60;
       console.log(expiresAt)
       let ttl = qless.ForkingWorker._getTTL(expiresAt);
+      console.log(ttl)
       expect(ttl).to.be.below(63001);
       expect(ttl).to.be.above(60999);
 

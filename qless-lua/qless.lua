@@ -1,4 +1,4 @@
--- Current SHA: c0567c71326162cff1e169e7267c0efc77b9bdba
+-- Current SHA: 627b1a0e32915d4c614be6448caa6f077779fb13
 -- This is a generated file
 local Qless = {
   ns = 'ql:'
@@ -2075,6 +2075,12 @@ function QlessResource:release(now, jid)
 
   if Qless.job(newJid):acquire_resources(now) then
     local data = Qless.job(newJid):data()
+
+    if data == nil then
+      redis.call('zrem', keyPending, newJid)
+      return false
+    end
+
     Qless.queue(data['queue']).work.add(score, 0, newJid)
   end
 

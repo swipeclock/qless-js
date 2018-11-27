@@ -4,8 +4,6 @@ language: node_js
 node_js:
   - "6"
 before_install:
-  - git submodule update --init --recursive
-  - 'cd qless-core && make'
   - npm install
 script:
   - npm run coverage

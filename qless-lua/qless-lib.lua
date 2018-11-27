@@ -1,4 +1,4 @@
--- Current SHA: 7d9581f512cd18ffe95e6885bc900e92301f1b9e
+-- Current SHA: 627b1a0e32915d4c614be6448caa6f077779fb13
 -- This is a generated file
 -------------------------------------------------------------------------------
 -- Forward declarations to make everything happy
@@ -2058,9 +2058,15 @@ function QlessQueue:recur(now, jid, klass, raw_data, spec, ...)
         options.backlog))
     options.resources = assert(cjson.decode(options['resources'] or '[]'),
       'Recur(): Arg "resources" not JSON array: '     .. tostring(options['resources']))
+    options.replace = assert(tonumber(options.replace or 1),
+      'Recur(): Arg "replace" not a number: ' .. tostring(options.replace))
 
     local count, old_queue = unpack(redis.call('hmget', 'ql:r:' .. jid, 'count', 'queue'))
     count = count or 0
+
+    if count ~= 0 and options.replace == 0 then
+      return nil
+    end
 
     -- If it has previously been in another queue, then we should remove
     -- some information about it
@@ -2751,6 +2757,14 @@ function QlessResource:release(now, jid)
   -- multiple resource validation
   if Qless.job(newJid):acquire_resources(now) then
     local data = Qless.job(newJid):data()
+
+    -- if a user manually removed a job key it will break the pending
+    -- protect against user error by cleaning up the pending
+    if data == nil then
+      redis.call('zrem', keyPending, newJid)
+      return false
+    end
+
     Qless.queue(data['queue']).work.add(score, 0, newJid)
   end
 

@@ -1,4 +1,4 @@
--- Current SHA: 7d9581f512cd18ffe95e6885bc900e92301f1b9e
+-- Current SHA: 627b1a0e32915d4c614be6448caa6f077779fb13
 -- This is a generated file
 local Qless = {
   ns = 'ql:'
@@ -1552,9 +1552,15 @@ function QlessQueue:recur(now, jid, klass, raw_data, spec, ...)
         options.backlog))
     options.resources = assert(cjson.decode(options['resources'] or '[]'),
       'Recur(): Arg "resources" not JSON array: '     .. tostring(options['resources']))
+    options.replace = assert(tonumber(options.replace or 1),
+      'Recur(): Arg "replace" not a number: ' .. tostring(options.replace))
 
     local count, old_queue = unpack(redis.call('hmget', 'ql:r:' .. jid, 'count', 'queue'))
     count = count or 0
+
+    if count ~= 0 and options.replace == 0 then
+      return nil
+    end
 
     if old_queue then
       Qless.queue(old_queue).recurring.remove(jid)
@@ -2069,6 +2075,12 @@ function QlessResource:release(now, jid)
 
   if Qless.job(newJid):acquire_resources(now) then
     local data = Qless.job(newJid):data()
+
+    if data == nil then
+      redis.call('zrem', keyPending, newJid)
+      return false
+    end
+
     Qless.queue(data['queue']).work.add(score, 0, newJid)
   end
 

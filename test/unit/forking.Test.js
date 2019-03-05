@@ -283,6 +283,7 @@ describe('qless.worker.forking', () => {
       worker._createWatchdog(workerName, jid, expiresAt)
       setTimeout(() => {
         expect(myStub.calledOnce).to.eql(true);
+        expect(myStub.getCall(0).args[1]).to.eql('SIGKILL');
         myStub.restore()
         done()
       }, 100)
